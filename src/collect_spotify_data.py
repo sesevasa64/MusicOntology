@@ -109,7 +109,7 @@ async def main():
         artists_set.update(artists)
     
     artists_data = pd.DataFrame([artist.data for artist in artists_set])
-    artists_data.to_csv("data/artist.csv", index=False)
+    artists_data.to_csv("data/artists.csv", index=False)
 
     await client.close()
 
