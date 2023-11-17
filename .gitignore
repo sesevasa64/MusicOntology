@@ -1,5 +1,8 @@
 __pycache__
 data/*.csv
+data/*.ttl
+data/*.owl
 .vscode
 venv
 .env
+.DS_Store

@@ -33,7 +33,7 @@ def main():
     # Object properties
     hasAssociatedGenre_op, hasGenre_op, partOf_op, performedBy_op = \
         [URIRef(f"{base_url}#{op}") for op in ["hasAssociatedGenre", "hasGenre", "partOf", "performedBy"]]
-    
+
     # Data properties
     dp_names = [
         "acousticness", "country", "danceability", "performedBy", "duration", "energy", "instrumentalness",
@@ -46,7 +46,7 @@ def main():
     tracks = pd.read_csv("data/tracks.csv")
     performers = pd.read_csv("data/performers.csv")
 
-    artist_id2name = dict(zip(artist["id"], artist["artist_name"]))
+    artist_id2name = dict(zip(artist["id"], artist["name"]))
 
     def foo(artist_ids_raw: str):
         artist_names = []
@@ -54,7 +54,7 @@ def main():
         for artist_id in artist_ids:
             artist_names.append(artist_id2name[artist_id])
         return artist_names
-    
+
     performers["artist_names"] = performers["artist_ids"].apply(foo)
 
     df.drop_duplicates(subset=['track_id'], inplace=True)
@@ -93,7 +93,7 @@ def main():
     for index, row in tqdm(data.iterrows(), total=len(data)):
         track_individual = URIRef(f"{base_url}#track_"+row['track_id'])
         g.add((track_individual, RDF.type, Track_class))
-        
+
         performer_individual = URIRef(f"{base_url}#performer_{row['performer_id']}")
         album_individual = URIRef(f"{base_url}#album_{row['album_id']}")
         if not pd.isna(row['genre']):
@@ -107,14 +107,14 @@ def main():
         for dp_name in dp_names:
             if dp_name in ["country", "label"]:
                 continue
-            
-            tack_dp = URIRef(f"{base_url}#{dp_name}")
+
+            track_dp = URIRef(f"{base_url}#{dp_name}")
 
             df_name = dp_name
             if df_name not in data.columns:
                 df_name = df_mapping[dp_name]
 
-            g.add((track_individual, tack_dp, Literal(row[df_name])))
+            g.add((track_individual, track_dp, Literal(row[df_name])))
 
     g.serialize("data/music_graph.ttl")
     g.close()
