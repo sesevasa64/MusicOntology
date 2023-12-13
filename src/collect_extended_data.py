@@ -14,8 +14,11 @@ def safe_get_value(data_dict, path):
 
 
 def main():
+    start = 0
+    end = 1500
     df = pd.read_csv("data/final_df.csv")
     df = df.drop_duplicates(subset=["artist"]).reset_index(drop=True)
+    df = df.iloc[start:end]
     track_names = df["name"].to_numpy()
     performer_names = df["artist"].to_numpy()
     performer_ids = df['spotify_id'].to_numpy()
@@ -59,9 +62,9 @@ def main():
                 artists_data['death_date'].append(safe_get_value(artist_info, ['life-span', 'end']))
     
     events_data = pd.DataFrame(events_data)
-    events_data.to_csv("data/events_data.csv", index=False)
+    events_data.to_csv(f"data/events_data_{start}_{end}.csv", index=False)
     artists_data = pd.DataFrame(artists_data)
-    artists_data.to_csv("data/artists_data.csv", index=False)
+    artists_data.to_csv(f"data/artists_data_{start}_{end}.csv", index=False)
 
 
 if __name__ == "__main__":
