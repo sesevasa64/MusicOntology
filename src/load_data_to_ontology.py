@@ -1,6 +1,6 @@
 import pandas as pd
 from rdflib import URIRef, Literal, Graph
-from rdflib.namespace import RDF
+from rdflib.namespace import RDF, XSD
 from tqdm import tqdm
 
 
@@ -25,14 +25,25 @@ def main():
     albumType_dp = URIRef(f"{base_url}#albumType")
     tracksTotal_dp = URIRef(f"{base_url}#tracksTotal")
     releaseYear_dp = URIRef(f"{base_url}#releaseYear")
+    instrument_dp = URIRef(f"{base_url}#instrument")
+    country_dp = URIRef(f"{base_url}#country")
+    gender_dp = URIRef(f"{base_url}#gender")
+    age_dp = URIRef(f"{base_url}#age")
+
+    startDate_dp = URIRef(f"{base_url}#startDate")
+    endDate_dp = URIRef(f"{base_url}#endDate")
+    
+    longitude_dp = URIRef(f"{base_url}#longitude")
+    latitude_dp = URIRef(f"{base_url}#latitude")
+    adress_dp = URIRef(f"{base_url}#adress")
 
     # Classes
-    Track_class, Performer_class, Genre_class, Album_class = \
-        [URIRef(f"{base_url}#{c}") for c in ["Track", "Performer", "Genre", "Album"]]
+    Track_class, Performer_class, Artist_class, Genre_class, Album_class, Event_class = \
+        [URIRef(f"{base_url}#{c}") for c in ["Track", "Performer", "Artist", "Genre", "Album", "Event"]]
 
     # Object properties
-    hasAssociatedGenre_op, hasGenre_op, partOf_op, performedBy_op = \
-        [URIRef(f"{base_url}#{op}") for op in ["hasAssociatedGenre", "hasGenre", "partOf", "performedBy"]]
+    hasAssociatedGenre_op, hasGenre_op, includedIn_op, participatedIn_op, partOf_op, performedBy_op = \
+        [URIRef(f"{base_url}#{op}") for op in ["hasAssociatedGenre", "hasGenre", "includedIn", "participatedIn", "partOf", "performedBy"]]
 
     # Data properties
     dp_names = [
@@ -41,21 +52,10 @@ def main():
     ]
 
     df = pd.read_csv("data/final_df.csv")
-    albums = pd.read_csv("data/albums_full.csv")
-    artist = pd.read_csv("data/artist.csv")
+    albums = pd.read_csv("data/albums_full_correct.csv")
+    artist = pd.read_csv("data/artist_data_correct.csv")
     tracks = pd.read_csv("data/tracks.csv")
-    performers = pd.read_csv("data/performers.csv")
-
-    artist_id2name = dict(zip(artist["id"], artist["name"]))
-
-    def foo(artist_ids_raw: str):
-        artist_names = []
-        artist_ids = eval(artist_ids_raw)
-        for artist_id in artist_ids:
-            artist_names.append(artist_id2name[artist_id])
-        return artist_names
-
-    performers["artist_names"] = performers["artist_ids"].apply(foo)
+    events = pd.read_csv("data/events_data_correct.csv")
 
     df.drop_duplicates(subset=['track_id'], inplace=True)
     data = df.merge(tracks, how='inner', left_on='spotify_id', right_on='id')
@@ -68,22 +68,64 @@ def main():
         "releaseYear": "year",
     }
 
+    performers = artist.drop_duplicates(subset="performer_id")
     for idx, row in tqdm(performers.iterrows(), total=len(performers)):
         performer_individual = URIRef(f"{base_url}#performer_{row['performer_id']}")
         g.add((performer_individual, RDF.type, Performer_class))
-        g.add((performer_individual, name_dp, Literal(row['artist_names'][0])))
+        g.add((performer_individual, name_dp, Literal(row["performer_name"])))
+
+    artist_sub = artist.drop_duplicates(subset=["name", "age"])
+    for idx, row in tqdm(artist_sub.iterrows(), total=len(artist_sub)):
+        performer_individual = URIRef(f"{base_url}#performer_{row['performer_id']}")
+        artist_individual = URIRef(f"{base_url}#artist_{idx}")
+        g.add((artist_individual, RDF.type, Artist_class))
+        g.add((artist_individual, name_dp, Literal(row["name"])))
+        if not pd.isna(row["age"]):
+            g.add((artist_individual, age_dp, Literal(row["age"])))
+        if not pd.isna(row["artist_country"]):
+            g.add((artist_individual, country_dp, Literal(row["artist_country"])))
+        if not pd.isna(row["gender"]):
+            g.add((artist_individual, gender_dp, Literal(row["gender"])))
+        if not pd.isna(row["start_date_artist"]):
+            g.add((artist_individual, startDate_dp, Literal(row["start_date_artist"])))
+        if not pd.isna(row["end_date_artist"]):
+            g.add((artist_individual, endDate_dp, Literal(row["end_date_artist"])))
+        if not pd.isna(row["instrument"]):
+            g.add((artist_individual, instrument_dp, Literal(row["instrument"][0])))
+        g.add((artist_individual, includedIn_op, performer_individual))
 
     for idx, row in tqdm(albums.iterrows(), total=len(albums)):
         album_individual = URIRef(f"{base_url}#album_{row['id']}")
         performer_individual = URIRef(f"{base_url}#performer_{row['performer_id']}")
         g.add((album_individual, RDF.type, Album_class))
-        g.add((album_individual, name_dp, Literal(row['name'])))
+        if not pd.isna(row['name']):
+            g.add((album_individual, name_dp, Literal(row['name'])))
         g.add((album_individual, tracksTotal_dp, Literal(row['total_tracks'])))
-        g.add((album_individual, label_dp, Literal(row['label'])))
+        if not pd.isna(row['label']):
+            g.add((album_individual, label_dp, Literal(row['label'])))
         g.add((album_individual, performedBy_op, performer_individual))
         g.add((album_individual, albumType_dp, Literal(row["album_type"])))
         if row["release_date_precision"] == "year":
             g.add((album_individual, releaseYear_dp, Literal(row['release_date'])))
+
+    event_props = ["adress", "longitude", "latitude", "start_date", "end_date"]
+    for idx, row in tqdm(events.iterrows(), total=len(events)):
+        adress, longitude, latitude, start_date, end_date = [row[prop] for prop in event_props]
+        event_individual = URIRef(f"{base_url}#event_{idx}")
+        performer_individual = URIRef(f"{base_url}#performer_{row['performer_id']}")
+        g.add((event_individual, RDF.type, Event_class))
+        g.add((event_individual, name_dp, Literal(row["name"])))
+        if not pd.isna(adress):
+            g.add((event_individual, adress_dp, Literal(adress)))
+        if not pd.isna(longitude):
+            g.add((event_individual, longitude_dp, Literal(longitude)))
+        if not pd.isna(latitude):
+            g.add((event_individual, latitude_dp, Literal(latitude)))
+        if not pd.isna(start_date):
+            g.add((event_individual, startDate_dp, Literal(start_date, datatype=XSD.date)))
+        if not pd.isna(end_date):
+            g.add((event_individual, endDate_dp, Literal(end_date, datatype=XSD.date)))
+        g.add((performer_individual, participatedIn_op, event_individual))
 
     for genre in data["genre"].dropna().unique():
         genre_individual = URIRef(f"{base_url}#genre_{genre}")
