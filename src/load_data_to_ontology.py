@@ -54,7 +54,7 @@ def main():
     df = pd.read_csv("data/final_df.csv")
     albums = pd.read_csv("data/albums_full_correct.csv")
     artist = pd.read_csv("data/artist_data_correct.csv")
-    tracks = pd.read_csv("data/tracks.csv")
+    tracks = pd.read_csv("data/tracks_correct.csv")
     events = pd.read_csv("data/events_data_correct.csv")
 
     df.drop_duplicates(subset=['track_id'], inplace=True)
