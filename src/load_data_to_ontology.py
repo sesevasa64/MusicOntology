@@ -73,6 +73,12 @@ def main():
         performer_individual = URIRef(f"{base_url}#performer_{row['performer_id']}")
         g.add((performer_individual, RDF.type, Performer_class))
         g.add((performer_individual, name_dp, Literal(row["performer_name"])))
+        if not pd.isna(row["performer_country"]):
+            g.add((performer_individual, country_dp, Literal(row["performer_country"])))
+        if not pd.isna(row["start_date_performer"]):
+            g.add((performer_individual, startDate_dp, Literal(row["start_date_performer"])))
+        if not pd.isna(row["end_date_performer"]):
+            g.add((performer_individual, endDate_dp, Literal(row["end_date_performer"])))
 
     artist_sub = artist.drop_duplicates(subset=["name", "age"])
     for idx, row in tqdm(artist_sub.iterrows(), total=len(artist_sub)):
