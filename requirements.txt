@@ -4,3 +4,5 @@ spotify==0.10.2
 tqdm==4.66.1
 rdflib==7.0.0
 ipykernel
+seaborn==0.13.0
+adjustText==0.8
