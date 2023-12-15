@@ -18,7 +18,7 @@ def main():
     # Print the number of "triples" in the Graph
     print(f"Graph g has {len(g)} statements.")
 
-    base_url = "http://www.semanticweb.org/music_ontology"
+    base_url = "http://www.semanticweb.org/music-ontology"
 
     name_dp = URIRef(f"{base_url}#name")
     label_dp = URIRef(f"{base_url}#label")
@@ -57,7 +57,7 @@ def main():
     tracks = pd.read_csv("data/tracks_correct.csv")
     events = pd.read_csv("data/events_data_correct.csv")
 
-    df.drop_duplicates(subset=['track_id'], inplace=True)
+    df.drop_duplicates(subset=['spotify_id'], inplace=True)
     data = df.merge(tracks, how='inner', left_on='spotify_id', right_on='id')
     data['genre'] = data['genre'].replace(' ', '_', regex=True)
 
@@ -139,7 +139,7 @@ def main():
         g.add((genre_individual, name_dp, Literal(genre)))
 
     for index, row in tqdm(data.iterrows(), total=len(data)):
-        track_individual = URIRef(f"{base_url}#track_"+row['track_id'])
+        track_individual = URIRef(f"{base_url}#track_"+row['spotify_id'])
         g.add((track_individual, RDF.type, Track_class))
 
         performer_individual = URIRef(f"{base_url}#performer_{row['performer_id']}")
